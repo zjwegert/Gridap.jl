@@ -4,6 +4,7 @@ using Test
 using Gridap.TensorValues
 using Gridap.Fields
 using Gridap.Polynomials
+# using BenchmarkTools
 
 import Gridap.Polynomials: _legendre
 import Gridap.Fields: Broadcasting
@@ -29,6 +30,13 @@ solh = evaluate(∇∇b,Point{1,V}[(0.5),])
 v = V[0.5  0.5  -sqrt(3)/4 0.0]
 g = G[-1.0 1.0 0.0 -sqrt(5)/2]
 h = H[0.0 0.0 2*sqrt(3) 0.0]
+
+# cache = return_cache(b,[xi,])
+# @btime evaluate!($cache,$b,$[xi,])
+# cache = return_cache(∇b,[xi,])
+# @btime evaluate!($cache,$∇b,$[xi,])
+# cache = return_cache(∇∇b,[xi,])
+# @btime evaluate!($cache,$∇∇b,$[xi,])
 
 @test evaluate(b,[xi,]) ≈ v
 @test evaluate(∇b,[xi,]) ≈ g
