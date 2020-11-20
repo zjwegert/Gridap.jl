@@ -23,10 +23,6 @@ b = IntegratedLegendreBasis{1}(V,order)
 ∇b = Broadcasting(∇)(b)
 ∇∇b = Broadcasting(∇)(∇b)
 
-solv = evaluate(b,Point{1,V}[(0.5),])
-solg = evaluate(∇b,Point{1,V}[(0.5),])
-solh = evaluate(∇∇b,Point{1,V}[(0.5),])
-
 v = V[0.5  0.5  -sqrt(3)/4 0.0]
 g = G[-1.0 1.0 0.0 -sqrt(5)/2]
 h = H[0.0 0.0 2*sqrt(3) 0.0]
