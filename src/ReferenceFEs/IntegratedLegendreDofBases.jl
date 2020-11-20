@@ -1,45 +1,40 @@
-function _IL_nodes_and_moments(p::Polytope, pb::IntegratedLegendreBasis{D,T}) where {D,T}
+function _IL_nodes_and_moments(p::Polytope, b::IntegratedLegendreBasis{D,T}) where {D,T}
 
   @notimplementedif ! is_n_cube(p)
   @assert D == num_dims(p)
 
+  # Compute quadrature on reference cell
+  order = maximum(b.orders)
+  degree = 2*order
+  quad = Quadrature(p,degree)
+  cips = get_coordinates(quad)
+  wips = get_weights(quad)
+
+  # Compute nodes
   pt = Point{D,T}
-  nf_nodes = [ zeros(pt,0) for face in 1:num_faces(p)]
-  nf_moments = [ zeros(T,0,0) for face in 1:num_faces(p)]
-
-  # Compute vertex (aka nodal or external) moments
-  d = 0
   vcips = get_vertex_coordinates(p)
-  vrange = get_dimrange(p,d)
-  nf_nodes[vrange] = [ [vcips[vertex]] for vertex in 1:length(vrange) ]
-  nf_moments[vrange] = fill(ones(T,1,1),length(vrange))
+  nodes = vcat(vcips,cips)
 
-  # ecips, emoments = _Nedelec_edge_values(p,T,order)
-  # erange = get_dimrange(p,1)
-  # nf_nodes[erange] = ecips
-  # nf_moments[erange] = emoments
+  # Compute face nodes
+  f_nodes = vcat([i:i+1 for i = 1:num_faces(p,0)],
+                 [num_faces(p,0)+1:num_faces(p,0)+length(cips)])
 
-  # if ( num_dims(p) == 3 && order > 0)
+  # Compute moments
+  f_moments = [ zeros(T,0,0) for face in 1:num_faces(p) ]
 
-  #   fcips, fmoments = _Nedelec_face_values(p,T,order)
-  #   frange = get_dimrange(p,D-1)
-  #   nf_nodes[frange] = fcips
-  #   nf_moments[frange] = fmoments
+  # # Compute vertex (aka nodal) moments
+  vrange = get_dimrange(p,0)
+  f_moments[vrange] = fill(ones(T,1,1),length(vrange))
 
-  # end
+  # # Compute other non-nodal moments
+  if order > 1
 
-  # if (order > 0)
+    ∇b = Broadcasting(∇)(b)
+    vals = evaluate(∇b,cips)
 
-  #   ccips, cmoments = _Nedelec_cell_values(p,T,order)
-  #   crange = get_dimrange(p,D)
-  #   nf_nodes[crange] = ccips
-  #   nf_moments[crange] = cmoments
 
-  # end
 
-  nf_nodes, nf_moments
-end
+  end
 
-function _IL_vertex_values(p,T)
-
+  nodes, f_moments, f_nodes
 end
