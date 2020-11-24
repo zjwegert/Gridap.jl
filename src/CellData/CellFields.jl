@@ -441,7 +441,7 @@ Base.:(∘)(f::Function,g::Tuple{Vararg{Union{Function,CellField}}}) = Operation
 
 # Unary ops
 
-for op in (:symmetric_part,:inv,:det,:abs,:abs2,:+,:-,:tr,:transpose,:adjoint,:grad2curl)
+for op in (:symmetric_part,:inv,:det,:abs,:abs2,:+,:-,:tr,:transpose,:adjoint,:grad2curl,:real,:imag)
   @eval begin
     ($op)(a::CellField) = Operation($op)(a)
   end
@@ -469,6 +469,23 @@ end
 outer(::typeof(∇),f::CellField) = gradient(f)
 outer(f::CellField,::typeof(∇)) = transpose(gradient(f))
 cross(::typeof(∇),f::CellField) = curl(f)
+
+"""
+    get_physical_coordinate(trian::Triangulation)
+
+In contrast to get_cell_map, the returned object:
+- is a [`CellField`](@ref)
+- its gradient is the identity tensor
+"""
+function get_physical_coordinate(trian::Triangulation)
+  CellField(_phys_coord,trian)
+end
+
+_phys_coord(x) = x
+
+_phys_coord_grad(x) = one(typeof(outer(x,x)))
+
+gradient(::typeof(_phys_coord)) = _phys_coord_grad
 
 # Skeleton related Operations
 
