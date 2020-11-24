@@ -247,7 +247,7 @@ function _evaluate_nd_il!(
 end
 
 @inline function _set_value_il!(v::AbstractVector{V},s::T,k) where {V,T}
-  m = zero(mutable(V))
+  m = zero(Mutable(V))
   z = zero(T)
   js = eachindex(m)
   for j in js
@@ -281,7 +281,7 @@ function _gradient_nd_il!(
     _gradient_1d_il!(g,x,orders[d],d)
   end
 
-  z = zero(mutable(VectorValue{D,T}))
+  z = zero(Mutable(VectorValue{D,T}))
   o = one(T)
   k = 1
 
@@ -318,7 +318,7 @@ end
   v::AbstractVector{G},s,k,::Type{V}) where {V,G}
 
   T = eltype(s)
-  m = zero(mutable(G))
+  m = zero(Mutable(G))
   w = zero(V)
   z = zero(T)
   for j in CartesianIndices(w)
@@ -351,7 +351,7 @@ function _hessian_nd_il!(
     _hessian_1d_il!(h,x,orders[d],d)
   end
 
-  z = zero(mutable(TensorValue{D,D,T}))
+  z = zero(Mutable(TensorValue{D,D,T}))
   o = one(T)
   k = 1
 
