@@ -173,7 +173,7 @@ function _return_cache(
   TisbitsType::Val{false}) where {D,V,T}
 
   cache = _return_cache(fg,x,T,Val{true}())
-  z = CachedArray(zeros(eltype(T),D)) 
+  z = CachedArray(zeros(eltype(T),D))
   (cache...,z)
 end
 
@@ -195,7 +195,7 @@ function _evaluate!(
 
   f = fg.fa
   r, v, c, g = cache
-  z = zero(Mutable(VectorValue{D,eltype(T)}))
+  z = zero(Mutable(eltype(x)))
   np = length(x)
   ndof = length(f.terms) * num_components(T)
   n = 1 + _maximum(f.orders)
@@ -440,7 +440,7 @@ function _gradient_nd!(
     _evaluate_1d!(c,x,orders[d],d)
     _gradient_1d!(g,x,orders[d],d)
   end
-  
+
   o = one(T)
   k = 1
 
