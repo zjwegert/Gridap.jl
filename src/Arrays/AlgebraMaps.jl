@@ -41,10 +41,37 @@ function return_value(::typeof(*),a::ArrayBlock{A,2},b::ArrayBlock{B,1}) where {
 end
 
 function return_cache(::typeof(*),a::ArrayBlock,b::ArrayBlock)
+  # If any inner arrays have incompatible sizes, use return_value for structure
+  if !_blocks_compatible_for_mul(a, b)
+    ri = return_value(*,a,b)
+    c1 = CachedArray(ri)
+    c2 = return_cache(unwrap_cached_array,c1)
+    return c1, c2
+  end
   c1 = CachedArray(a*b)
   c2 = return_cache(unwrap_cached_array,c1)
   return c1, c2
 end
+
+function _blocks_compatible_for_mul(a::ArrayBlock{A,2}, b::ArrayBlock{B,1}) where {A,B}
+  ni, nj = size(a.array)
+  for i in 1:ni
+    for j in 1:nj
+      if a.touched[i,j] && b.touched[j]
+        aij = a.array[i,j]
+        bj = b.array[j]
+        if isa(aij, AbstractMatrix) && isa(bj, AbstractVector)
+          if size(aij,2) != length(bj)
+            return false
+          end
+        end
+      end
+    end
+  end
+  return true
+end
+
+_blocks_compatible_for_mul(a::ArrayBlock, b::ArrayBlock) = true
 
 function evaluate!(cache,::typeof(*),a::ArrayBlock,b::ArrayBlock)
   c1, c2 = cache
@@ -248,10 +275,10 @@ end # end for T
 
 A map for solving local linear systems, relying on a factorization method.
 
-Given a left-hand-side matrix `mat` and a set of N right-hand-side arrays `lhs`, 
-returns an N-Tuple of arrays containing the solutions to the linear systems defined by 
+Given a left-hand-side matrix `mat` and a set of N right-hand-side arrays `lhs`,
+returns an N-Tuple of arrays containing the solutions to the linear systems defined by
 
-Each system is given by `A*x_i = b_i`, and the solution is computed as 
+Each system is given by `A*x_i = b_i`, and the solution is computed as
 `x_i = ldiv!(factorize!(A,pivot),b_i)`
 
 """
@@ -321,12 +348,12 @@ end
 
 A map for solving local constrained linear systems, relying on a factorization method.
 
-Given a left-hand-side 2x2 block matrix matrix`mat` and a set of 2xN right-hand-side arrays `lhs`, 
-returns an N-Tuple of arrays containing the solutions to the linear systems. 
+Given a left-hand-side 2x2 block matrix matrix`mat` and a set of 2xN right-hand-side arrays `lhs`,
+returns an N-Tuple of arrays containing the solutions to the linear systems.
 
 Each system is given by `A*[x_i; λ_i] = b_i`, where `A = [App, Aλp; Apλ, 0]` is the
-augmented matrix, and `b_i = [Bp; Bλ]` is the right-hand side vector. The solution is 
-computed using a penalty method, as `x_i = ldiv!(factorize!(C,pivot),d_i)` with 
+augmented matrix, and `b_i = [Bp; Bλ]` is the right-hand side vector. The solution is
+computed using a penalty method, as `x_i = ldiv!(factorize!(C,pivot),d_i)` with
 `C = App + μT * Apλ * Aλp` and `d_i = Bp + μT * Apλ * Bλ`, where `μT` is a penalty parameter.
 The penalty parameter μT is heuristically chosen as `μT = norm(App)/norm(Apλ*Aλp)`.
 
@@ -356,10 +383,10 @@ function Arrays.evaluate!(cache::Nothing, k::LocalPenaltySolveMap, lhs, rhs::Vec
   else
     μT = tr(App)/norm(Apλ*Aλp) # Multiple constraints
   end
-  
+
   # App = App + μT * Apλ * Aλp
   mul!(App, Apλ, Aλp, μT, 1)
-  
+
   # Bp = Bp + μT * Apλ * Bλ
   mul!(Bp, Apλ, Bλ, μT, 1)
 
@@ -383,10 +410,10 @@ function Arrays.evaluate!(cache::Nothing, k::LocalPenaltySolveMap, lhs, rhs)
   else
     μT = tr(App)/norm(Apλ*Aλp) # Multiple constraints
   end
-  
+
   # App = App + μT * Apλ * Aλp
   mul!(App, Apλ, Aλp, μT, 1)
-  
+
   # BpΩ = BpΩ + μT * Apλ * BλΩ
   mul!(BpΩ, Apλ, BλΩ, μT, 1)
 

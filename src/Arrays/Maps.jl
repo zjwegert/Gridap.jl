@@ -159,7 +159,9 @@ end
 function evaluate!(cache,f::Broadcasting,x::Union{Number,AbstractArray{<:Number}}...)
   r = _prepare_cache!(cache,x...)
   a = r.array
-  broadcast!(f.f,a,x...)
+  if !isempty(a)
+    broadcast!(f.f,a,x...)
+  end
   a
 end
 
@@ -206,7 +208,7 @@ _size_zero(a::Number) = (1,)
 
 function return_cache(f::Broadcasting,x::Union{Number,AbstractArray{<:Number}}...)
   s = map(_size,x)
-  bs = Base.Broadcast.broadcast_shape(s...)
+  bs = _safe_broadcast_shape(s...)
   T = return_type(f.f,map(testitem,x)...)
   r = fill(testvalue(T),bs)
   cache = CachedArray(r)
@@ -216,11 +218,22 @@ end
 
 function _prepare_cache!(c,x...)
   s = map(_size,x)
-  bs = Base.Broadcast.broadcast_shape(s...)
+  bs = _safe_broadcast_shape(s...)
   if bs != size(c)
     setsize!(c,bs)
   end
   c
+end
+
+# Handle case when a shape has zero dimension
+function _safe_broadcast_shape(shapes...)
+  has_zero = any(s -> any(iszero, s), shapes)
+  has_zero || return Base.Broadcast.broadcast_shape(shapes...)
+  max_ndims = maximum(length, shapes)
+  ntuple(max_ndims) do i
+    dims = (i <= length(s) ? s[i] : 1 for s in shapes)
+    any(iszero, dims) ? 0 : maximum(dims)
+  end
 end
 
 _size(a) = size(a)

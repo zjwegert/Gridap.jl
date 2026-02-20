@@ -576,9 +576,11 @@ function evaluate!(cache,k::IntegrationMap,ax::AbstractVector,w)
   T = typeof( testitem(ax)*testitem(w) + testitem(ax)*testitem(w) )
   z = zero(T)
   r = z
-  @check length(ax) == length(w)
-  @inbounds for i in eachindex(ax)
-    r += ax[i]*w[i]
+  @check length(ax) == length(w) || isempty(ax) || isempty(w)
+  if !isempty(ax) && !isempty(w)
+    @inbounds for i in eachindex(ax)
+      r += ax[i]*w[i]
+    end
   end
   r
 end
@@ -586,10 +588,12 @@ end
 function evaluate!(cache,k::IntegrationMap,aq::AbstractVector,w,jq::AbstractVector)
   T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq)) + testitem(aq)*testitem(w)*meas(testitem(jq)) )
   z = zero(T)
-  @check length(aq) == length(w)
-  @check length(aq) == length(jq)
-  @inbounds for i in eachindex(aq)
-    z += aq[i]*w[i]*meas(jq[i])
+  @check length(aq) == length(w) || isempty(aq) || isempty(w)
+  @check length(aq) == length(jq) || isempty(aq) || isempty(jq)
+  if !isempty(aq) && !isempty(w) && !isempty(jq)
+    @inbounds for i in eachindex(aq)
+      z += aq[i]*w[i]*meas(jq[i])
+    end
   end
   z
 end
@@ -603,13 +607,17 @@ end
 function evaluate!(cache,k::IntegrationMap,ax::AbstractArray,w)
   setsize!(cache,size(ax)[2:end])
   r = cache.array
-  @check size(ax,1) == length(w)
-  @inbounds for j in CartesianIndices(r)
-    rj = zero(eltype(r))
-    for p in 1:length(w)
-      rj += ax[p,j]*w[p]
+  @check size(ax,1) == length(w) || isempty(ax) || isempty(w)
+  if !isempty(ax) && !isempty(w)
+    @inbounds for j in CartesianIndices(r)
+      rj = zero(eltype(r))
+      for p in 1:length(w)
+        rj += ax[p,j]*w[p]
+      end
+      r[j] = rj
     end
-    r[j] = rj
+  else
+    fill!(r, zero(eltype(r)))
   end
   r
 end
@@ -632,14 +640,16 @@ end
 function evaluate!(cache,k::IntegrationMap,aq::AbstractArray,w,jq::AbstractVector)
   setsize!(cache,size(aq)[2:end])
   r = cache.array
-  @check size(aq,1) == length(w) || size(aq,1) == 0
-  @check size(aq,1) == length(jq) || size(aq,1) == 0
-  fill!(r,zero(eltype(r)))
-  cis = CartesianIndices(r)
-  @inbounds for p in 1:length(w)
-    dV = meas(jq[p])*w[p]
-    for j in cis
-      r[j] += aq[p,j]*dV
+  @check size(aq,1) == length(w) || isempty(aq) || isempty(w)
+  @check size(aq,1) == length(jq) || isempty(aq) || isempty(jq)
+  fill!(r, zero(eltype(r)))
+  if !isempty(aq) && !isempty(w) && !isempty(jq)
+    cis = CartesianIndices(r)
+    @inbounds for p in 1:length(w)
+      dV = meas(jq[p])*w[p]
+      for j in cis
+        r[j] += aq[p,j]*dV
+      end
     end
   end
   r
@@ -665,20 +675,22 @@ function evaluate!(cache,k::IntegrationMap,aq::AbstractArray{S,3} where S, w,jq:
   setsize!(cache_s,(np,))
   r = cache_r.array
   dV = cache_s.array
-  @check np == length(w) || np == 0
-  @check np == length(jq) || np == 0
-  @inbounds for p in 1:np
-    dV[p] = meas(jq[p])*w[p]
-  end
-  #fill!(r,zero(eltype(r)))
-  @inbounds for j in 1:nj
-    for i in 1:ni
-      rij = zero(eltype(aq))
-      for p in 1:np
-        rij += aq[p,i,j]*dV[p]
-      end
-      r[i,j] = rij
+  if !isempty(aq) && !isempty(w) && !isempty(jq)
+    @inbounds for p in 1:np
+      dV[p] = meas(jq[p])*w[p]
     end
+    #fill!(r,zero(eltype(r)))
+    @inbounds for j in 1:nj
+      for i in 1:ni
+        rij = zero(eltype(aq))
+        for p in 1:np
+          rij += aq[p,i,j]*dV[p]
+        end
+        r[i,j] = rij
+      end
+    end
+  else
+    fill!(r, zero(eltype(r)))
   end
   r
 end
@@ -687,14 +699,18 @@ function evaluate!(cache,k::IntegrationMap,aq::AbstractMatrix, w,jq::AbstractVec
   np, ni = size(aq)
   setsize!(cache,(ni,))
   r = cache.array
-  @check np == length(w) || np == 0
-  @check np == length(jq) || np == 0
-  fill!(r,zero(eltype(r)))
-  @inbounds for p in 1:np
-    dV = meas(jq[p])*w[p]
-    for i in 1:ni
-      r[i] += aq[p,i]*dV
+  @check np == length(w) || isempty(aq) || isempty(w)
+  @check np == length(jq) || isempty(aq) || isempty(jq)
+  if !isempty(aq) && !isempty(w) && !isempty(jq)
+    fill!(r,zero(eltype(r)))
+    @inbounds for p in 1:np
+      dV = meas(jq[p])*w[p]
+      for i in 1:ni
+        r[i] += aq[p,i]*dV
+      end
     end
+  else
+    fill!(r, zero(eltype(r)))
   end
   r
 end

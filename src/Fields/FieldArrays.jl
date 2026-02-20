@@ -594,17 +594,20 @@ function evaluate!(
   a::AbstractMatrix,
   b::AbstractArray{S,3} where S)
 
-  @check size(a,1) == size(b,1)
-  @check size(b,2) == 1 || size(b,1) == 0
   np, ni = size(a)
   nj = size(b,3)
+  if !iszero(np) && !isempty(b)
+    @check size(b,1) >= np
+  end
   setsize!(cache,(np,ni,nj))
   r = cache.array
-  for j in 1:nj
-    for p in 1:np
-      bpj = b[p,1,j]
-      for i in 1:ni
-        r[p,i,j] = f.op(a[p,i],bpj)
+  if !isempty(a) && !isempty(b)
+    for j in 1:nj
+      for p in 1:np
+        bpj = b[p,1,j]
+        for i in 1:ni
+          r[p,i,j] = f.op(a[p,i],bpj)
+        end
       end
     end
   end
@@ -617,17 +620,20 @@ function evaluate!(
   b::AbstractArray{S,3} where S,
   a::AbstractMatrix)
 
-  @check size(a,1) == size(b,1)
-  @check size(b,2) == 1 || size(b,1) == 0
   np, ni = size(a)
   nj = size(b,3)
+  if !iszero(np) && !isempty(b)
+    @check size(b,1) >= np
+  end
   setsize!(cache,(np,ni,nj))
   r = cache.array
-  for p in 1:np
-    for j in 1:nj
-      bpj = b[p,1,j]
-      for i in 1:ni
-        r[p,i,j] = f.op(bpj,a[p,i])
+  if !isempty(a) && !isempty(b)
+    for p in 1:np
+      for j in 1:nj
+        bpj = b[p,1,j]
+        for i in 1:ni
+          r[p,i,j] = f.op(bpj,a[p,i])
+        end
       end
     end
   end
@@ -640,14 +646,18 @@ function evaluate!(
   a::AbstractVector,
   b::AbstractMatrix)
 
-  @check size(a,1) == size(b,1)
   np, ni = size(b)
+  if !iszero(np) && !isempty(a)
+    @check size(a,1) >= np
+  end
   setsize!(cache,(np,ni))
   r = cache.array
-  for p in 1:np
-    ap = a[p]
-    for i in 1:ni
-      r[p,i] = f.op(ap,b[p,i])
+  if !isempty(a) && !isempty(b)
+    for p in 1:np
+      ap = a[p]
+      for i in 1:ni
+        r[p,i] = f.op(ap,b[p,i])
+      end
     end
   end
   r
@@ -659,14 +669,18 @@ function evaluate!(
   b::AbstractMatrix,
   a::AbstractVector)
 
-  @check size(a,1) == size(b,1)
   np, ni = size(b)
+  if !iszero(np) && !isempty(a)
+    @check size(a,1) >= np
+  end
   setsize!(cache,(np,ni))
   r = cache.array
-  for p in 1:np
-    ap = a[p]
-    for i in 1:ni
-      r[p,i] = f.op(b[p,i],ap)
+  if !isempty(a) && !isempty(b)
+    for p in 1:np
+      ap = a[p]
+      for i in 1:ni
+        r[p,i] = f.op(b[p,i],ap)
+      end
     end
   end
   r
@@ -678,15 +692,19 @@ function evaluate!(
   a::AbstractVector,
   b::AbstractArray{S,3} where S)
 
-  @check size(a,1) == size(b,1)
   np, ni, nj = size(b)
+  if !iszero(np) && !isempty(a)
+    @check size(a,1) >= np
+  end
   setsize!(cache,(np,ni,nj))
   r = cache.array
-  for p in 1:np
-    ap = a[p]
-    for j in 1:nj
-      for i in 1:ni
-        r[p,i,j] = f.op(ap,b[p,i,j])
+  if !isempty(a) && !isempty(b)
+    for p in 1:np
+      ap = a[p]
+      for j in 1:nj
+        for i in 1:ni
+          r[p,i,j] = f.op(ap,b[p,i,j])
+        end
       end
     end
   end
@@ -701,13 +719,18 @@ function evaluate!(
 
   @check size(a,1) == size(b,1)
   np, ni, nj = size(b)
+  if !iszero(np) && !isempty(a)
+    @check size(a,1) >= np
+  end
   setsize!(cache,(np,ni,nj))
   r = cache.array
-  for p in 1:np
-    ap = a[p]
-    for j in 1:nj
-      for i in 1:ni
-        r[p,i,j] = f.op(b[p,i,j],ap)
+  if !isempty(a) && !isempty(b)
+    for p in 1:np
+      ap = a[p]
+      for j in 1:nj
+        for i in 1:ni
+          r[p,i,j] = f.op(b[p,i,j],ap)
+        end
       end
     end
   end
@@ -737,4 +760,12 @@ for op in (:*,:⋅,:⊙,:⊗)
       Broadcasting(Operation(k))(f1,f2,g1,g2)
     end
   end
+end
+
+function Arrays.return_value(f::Broadcasting,x::Fields.TransposeFieldIndices...)
+  s = map(size,x)
+  bs = Base.Broadcast.broadcast_shape(s...)
+  T = return_type(f.f,map(testitem,x)...)
+  r = fill(testvalue(T),bs)
+  r
 end
