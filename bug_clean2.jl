@@ -33,3 +33,43 @@ L2_Γ(uh) = sqrt(sum(∫(uh*uh)dΓ))
 
 L2(uh1-f)
 L2_Γ(uh2-g)
+
+
+import Gridap: ∇
+
+u(x) = x[1]^2 + x[2]
+∇u(x) = VectorValue( 2*x[1], one(x[2]) )
+Δu(x) = 2
+f(x) = - Δu(x) + u(x)
+∇(::typeof(u)) = ∇u
+
+V = TestFESpace(model,ReferenceFE(lagrangian,Float64,2),conformity=:L2)
+U = TrialFESpace(V)
+
+Λ = Skeleton(model,tags=["interior","Γ"])
+n_Λ = get_normal_vector(Λ)
+dΛ = Measure(Λ,4)
+
+hmin = mean(CellField(lazy_map(vol->(vol)^(1/2),get_cell_measure(Ω)),Ω))
+γ = 10
+
+a(u,v) =
+  ∫( ∇(v)⋅∇(u) + v*u)*dΩ +
+  ∫( (γ/hmin)*jump(v*n_Λ)⋅jump(u*n_Λ) - jump(v*n_Λ)⋅mean(∇(u)) -  mean(∇(v))⋅jump(u*n_Λ) )*dΛ
+
+l(v) =
+  ∫( v*f )*dΩ
+
+op = AffineFEOperator(a,l,U,V)
+
+uh = solve(op)
+
+e = u - uh
+
+l2(u) = sqrt(sum( ∫( u⊙u )*dΩ ))
+h1(u) = sqrt(sum( ∫( u⊙u + ∇(u)⊙∇(u) )*dΩ ))
+
+el2 = l2(e)
+eh1 = h1(e)
+ul2 = l2(uh)
+uh1 = h1(uh)
