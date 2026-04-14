@@ -71,7 +71,12 @@ end
 
 get_background_model(t::SkeletonTriangulation) = get_background_model(t.plus)
 get_grid(t::SkeletonTriangulation) = get_grid(t.plus)
-get_glue(t::SkeletonTriangulation{D},::Val{D}) where D = get_glue(t.plus,Val(D))
+function get_glue(t::SkeletonTriangulation{D},::Val{D}) where D
+  plus = get_glue(t.plus,Val(D))
+  minus = get_glue(t.minus,Val(D))
+  # Return both sides even when dimension matches -- Gridap#TODO
+  SkeletonPair(plus,minus)
+end
 
 function get_glue(trian::SkeletonTriangulation,::Val{Dp}) where Dp
   model = get_background_model(trian)
