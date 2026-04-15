@@ -34,7 +34,7 @@ L2_Γ(uh) = sqrt(sum(∫(uh*uh)dΓ))
 L2(uh1-f)
 L2_Γ(uh2-g)
 
-
+using Test
 import Gridap: ∇
 
 u(x) = x[1]^2 + x[2]
@@ -43,8 +43,12 @@ u(x) = x[1]^2 + x[2]
 f(x) = - Δu(x) + u(x)
 ∇(::typeof(u)) = ∇u
 
-V = TestFESpace(model,ReferenceFE(lagrangian,Float64,2),conformity=:L2)
-U = TrialFESpace(V)
+V = TestFESpace(model,ReferenceFE(lagrangian,Float64,2),conformity=:L2)#,dirichlet_tags=["boundary"])
+U = TrialFESpace(V)#,u)
+
+Γ_bdry = BoundaryTriangulation(model,tags=["boundary"])
+dΓ_bdry = Measure(Γ_bdry,2)
+n_Γ_bdry = get_normal_vector(Γ_bdry)
 
 Λ = Skeleton(model,tags=["interior","Γ"])
 n_Λ = get_normal_vector(Λ)
@@ -54,7 +58,7 @@ hmin = mean(CellField(lazy_map(vol->(vol)^(1/2),get_cell_measure(Ω)),Ω))
 γ = 10
 
 a(u,v) =
-  ∫( ∇(v)⋅∇(u) + v*u)*dΩ +
+  ∫( ∇(v)⋅∇(u) + v*u)dΩ - ∫(v*(n_Γ_bdry⋅∇(u)))dΓ_bdry +
   ∫( (γ/hmin)*jump(v*n_Λ)⋅jump(u*n_Λ) - jump(v*n_Λ)⋅mean(∇(u)) -  mean(∇(v))⋅jump(u*n_Λ) )*dΛ
 
 l(v) =
@@ -73,3 +77,6 @@ el2 = l2(e)
 eh1 = h1(e)
 ul2 = l2(uh)
 uh1 = h1(uh)
+
+@test el2/ul2 < 1.e-8
+@test eh1/uh1 < 1.e-7
