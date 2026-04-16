@@ -60,8 +60,10 @@ g(x) = - Δp(x) + u(x)
 ∇(::typeof(p)) = ∇p
 
 V1 = FESpace(model,ReferenceFE(lagrangian,Float64,order),conformity=:L2)
-V2 = FESpace(Γ,ReferenceFE(lagrangian,Float64,order))
+V2 = FESpace(Γ,ReferenceFE(lagrangian,Float64,order),dirichlet_tags="∂Γ")
 V1V2 = MultiFieldFESpace([V1,V2])
+U2 = TrialFESpace(V2,p)
+U1U2 = MultiFieldFESpace([V1,U2])
 
 ∂Ω = BoundaryTriangulation(model,tags=["boundary"])
 d∂Ω = Measure(∂Ω,2order)
@@ -69,10 +71,6 @@ n_∂Ω = get_normal_vector(∂Ω)
 Λ = Skeleton(model,tags=["interior","Γ"])
 n_Λ = get_normal_vector(Λ)
 dΛ = Measure(Λ,2order)
-
-∂Γ = BoundaryTriangulation(Γ,tags=["∂Γ"])
-d∂Γ = Measure(∂Γ,2order)
-n_∂Γ = get_normal_vector(∂Γ)
 
 hmin = mean(CellField(lazy_map(vol->(vol)^(1/2),get_cell_measure(Ω)),Ω))
 γ = 10
@@ -84,9 +82,9 @@ a((u,p),(v,q)) =
 
 l((v,q)) =
   ∫( v*f )*dΩ + ∫(v*(n_∂Ω⋅∇u))d∂Ω + 
-  ∫( q*g )dΓ + ∫(q*(n_∂Γ⋅∇p))d∂Γ
+  ∫( q*g )dΓ
 
-op = AffineFEOperator(a,l,V1V2,V1V2)
+op = AffineFEOperator(a,l,U1U2,V1V2)
 
 uh,ph = solve(op)
 
